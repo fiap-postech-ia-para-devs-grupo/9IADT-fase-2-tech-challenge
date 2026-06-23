@@ -1,4 +1,4 @@
-# 9IADT — Tech Challenge (Fase 1)
+# 9IADT — Tech Challenge
 
 Sistema de suporte ao diagnóstico do câncer de mama. Notebook único: `tech_challenge_fase1.ipynb`.
 
