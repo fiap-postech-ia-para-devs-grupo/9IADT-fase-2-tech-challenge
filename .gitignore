@@ -209,3 +209,7 @@ __marimo__/
 # Project-specific
 # data/images/
 .claude/
+.agents/
+skills-*
+
+.tmp/
