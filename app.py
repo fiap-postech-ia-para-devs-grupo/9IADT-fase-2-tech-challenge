@@ -1,7 +1,11 @@
-import streamlit as st
-import requests
-import pandas as pd
+from __future__ import annotations
+
+from typing import Any
+
 import matplotlib.pyplot as plt
+import pandas as pd
+import requests
+import streamlit as st
 
 API_URL = "http://localhost:8000"
 
@@ -25,7 +29,7 @@ if "diagnosis" not in st.session_state:
 if page == "Tela 1 — Diagnóstico":
     st.title("Diagnóstico — RandomForest Otimizado")
 
-    patient_index = st.selectbox("Selecionar paciente (índice do test set)", range(0, 114))
+    patient_index: int = st.selectbox("Selecionar paciente (índice do test set)", range(0, 114)) or 0  # type: ignore[assignment]
 
     if st.button("Executar Diagnóstico"):
         with st.spinner("Rodando modelo..."):
@@ -35,7 +39,7 @@ if page == "Tela 1 — Diagnóstico":
             st.session_state.diagnosis = data
 
     if st.session_state.diagnosis:
-        d = st.session_state.diagnosis
+        d: dict[str, Any] = st.session_state.diagnosis
         color = "red" if d["prediction"] == "MALIGNO" else "green"
         st.markdown(f"### Resultado: :{color}[{d['prediction']}]")
         st.progress(d["confidence"], text=f"Confiança: {d['confidence']:.0%}")
@@ -60,7 +64,7 @@ elif page == "Tela 2 — Explicação LLM":
     if not st.session_state.diagnosis:
         st.info("Execute um diagnóstico na Tela 1 primeiro.")
     else:
-        d = st.session_state.diagnosis
+        d: dict[str, Any] = st.session_state.diagnosis
         st.markdown(f"**Paciente selecionado** — Predição: `{d['prediction']}` | Confiança: `{d['confidence']:.0%}`")
 
         if st.button("Gerar Explicação Médica"):
@@ -73,7 +77,10 @@ elif page == "Tela 2 — Explicação LLM":
             st.write(result["explanation"])
             st.warning(result["disclaimer"])
 
-            st.button("Copiar para relatório", on_click=lambda: st.toast("Texto copiado!"))
+            def _copy_toast() -> None:
+                st.toast("Texto copiado!")
+
+            st.button("Copiar para relatório", on_click=_copy_toast)
 
 
 # ─────────────────────────────────────────────
@@ -93,13 +100,15 @@ elif page == "Tela 3 — Resultados do AG":
     st.subheader("Comparativo: Baseline vs Experimentos AG")
     rows = [{"Modelo": "RF Baseline", "F1": baseline, "Pop": "—", "Gen": "—", "Mut": "—"}]
     for e in experiments:
-        rows.append({
-            "Modelo": e["name"],
-            "F1": e["best_f1"],
-            "Pop": e["population"],
-            "Gen": e["generations"],
-            "Mut": f"{e['mutation_rate']:.0%}",
-        })
+        rows.append(
+            {
+                "Modelo": e["name"],
+                "F1": e["best_f1"],
+                "Pop": e["population"],
+                "Gen": e["generations"],
+                "Mut": f"{e['mutation_rate']:.0%}",
+            }
+        )
     st.dataframe(pd.DataFrame(rows), use_container_width=True)
 
     st.subheader("Convergência por experimento")
