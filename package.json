@@ -1,0 +1,11 @@
+{
+  "name": "tech-challenge-fase2",
+  "version": "0.1.0",
+  "scripts": {
+    "api": "uv run uvicorn api.main:app --reload --port 8000",
+    "app": "uv run streamlit run app.py",
+    "install": "uv pip install -r requirements.txt",
+    "test": "uv run pytest tests/ -v",
+    "dev": "concurrently \"npm run api\" \"npm run app\""
+  }
+}
