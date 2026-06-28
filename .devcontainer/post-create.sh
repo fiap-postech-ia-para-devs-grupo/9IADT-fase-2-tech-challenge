@@ -2,6 +2,8 @@
 
 set -e
 
+bash .devcontainer/scripts/configure-git.sh
+
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 

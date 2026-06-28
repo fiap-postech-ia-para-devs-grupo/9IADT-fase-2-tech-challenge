@@ -18,4 +18,17 @@ RUN curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh |
 
 USER root
 
+RUN printf '%s\n' \
+    '#!/usr/bin/env bash' \
+    'set -eu' \
+    'prompt=${1:-}' \
+    'case "$prompt" in' \
+    '  *Username*) printf "%s\n" "x-access-token" ;;' \
+    '  *Password*) printf "%s\n" "${GITHUB_TOKEN:-}" ;;' \
+    '  *) printf "\n" ;;' \
+    'esac' \
+    > /usr/local/bin/github-askpass \
+    && chmod +x /usr/local/bin/github-askpass
+
+
 WORKDIR /workspaces/fase-1-tech-challenge
