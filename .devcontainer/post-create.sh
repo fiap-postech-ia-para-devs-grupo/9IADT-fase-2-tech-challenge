@@ -4,10 +4,11 @@ set -e
 
 bash .devcontainer/scripts/configure-git.sh
 
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+uv sync --frozen
 
-python -m ipykernel install --user --name fiap-tech-challenge --display-name "Python (fiap-tech-challenge)"
+npm install
+
+uv run python -m ipykernel install --user --name fiap-tech-challenge --display-name "Python (fiap-tech-challenge)"
 
 # Create .claude/skills symlink pointing to .agents/skills
 mkdir -p /workspaces/9IADT-tech-challenge/.agents/skills

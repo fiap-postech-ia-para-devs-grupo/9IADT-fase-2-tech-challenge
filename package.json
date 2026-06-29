@@ -4,8 +4,10 @@
   "scripts": {
     "api": "uv run uvicorn api.main:app --reload --port 8000",
     "app": "uv run streamlit run app.py",
-    "install": "uv pip install -r requirements.txt",
-    "test": "uv run pytest tests/ -v",
+    "install": "uv sync --frozen",
     "dev": "concurrently \"npm run api\" \"npm run app\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
   }
 }

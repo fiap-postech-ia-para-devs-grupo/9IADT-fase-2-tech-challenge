@@ -1,5 +1,7 @@
 {
   "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.terminal.useEnvFile": true,
+  "python.envFile": "${workspaceFolder}/.env",
 
   // Pylance
   "python.languageServer": "Pylance",

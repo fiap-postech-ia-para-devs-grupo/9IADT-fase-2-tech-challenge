@@ -10,10 +10,10 @@ Projeto: Tech Challenge - Fase 2
 import joblib
 import pandas as pd
 
-from llm.medical_agent import MedicalDiagnosisAgent, DiagnosisInput
+from llm.medical_agent import DiagnosisInput, MedicalDiagnosisAgent
+
 
 class DiagnosisPipeline:
-
     def __init__(self, model_path: str, gemini_api_key: str):
 
         bundle = joblib.load(model_path)
@@ -42,17 +42,14 @@ class DiagnosisPipeline:
             features=feats_sc,
             prediction=pred,
             probability=proba,
-            model_name=f"AG-{self.genes.get('model_type','unknown')}"
+            model_name=f"AG-{self.genes.get('model_type', 'unknown')}",
         )
 
         try:
             explanation = self.agent.explain(inp)
 
         except Exception as e:
-            explanation = {
-                "error": "llm_failure",
-                "message": str(e)
-            }
+            explanation = {"error": "llm_failure", "message": str(e)}
 
         return {
             "prediction": "maligno" if pred == 1 else "benigno",
@@ -60,9 +57,8 @@ class DiagnosisPipeline:
             "probability": proba,
             "genes": self.genes,
             "features_scaled": feats_sc,
-            "explanation": explanation
+            "explanation": explanation,
         }
-
 
     def predict_raw(self, raw_features: dict) -> dict:
         """
@@ -75,7 +71,4 @@ class DiagnosisPipeline:
         pred = int(self.model.predict(X_sc)[0])
         proba = float(self.model.predict_proba(X_sc)[0][pred])
 
-        return {
-            "prediction": pred,
-            "probability": proba
-        }
+        return {"prediction": pred, "probability": proba}

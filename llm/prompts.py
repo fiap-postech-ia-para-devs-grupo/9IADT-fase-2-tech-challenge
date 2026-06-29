@@ -6,6 +6,7 @@ Objetivo:
 - Facilitar experimentação (Prompt Engineering)
 - Garantir rastreabilidade para relatório acadêmico
 """
+
 SYSTEM_INSTRUCTION = """
 Você é um assistente clínico especializado em oncologia mamária.
 

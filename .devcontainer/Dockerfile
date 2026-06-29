@@ -18,6 +18,10 @@ RUN curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh |
 
 USER root
 
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
+    && mv /root/.local/bin/uv /usr/local/bin/uv \
+    && mv /root/.local/bin/uvx /usr/local/bin/uvx
+
 RUN printf '%s\n' \
     '#!/usr/bin/env bash' \
     'set -eu' \
