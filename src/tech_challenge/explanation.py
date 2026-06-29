@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from tech_challenge.diagnosis import DiagnosisResult, FeatureImpact
 from tech_challenge.llm.medical_agent import DiagnosisInput, MedicalDiagnosisAgent
 
 DISCLAIMER = "Este diagnostico e um apoio computacional. A decisao clinica final e responsabilidade do medico."
+FeaturePayloadValue = str | int | float
 
 
 @dataclass(frozen=True)
@@ -18,7 +20,7 @@ class Explanation:
 def explain_diagnosis(
     prediction: str,
     confidence: float,
-    top_features: list[FeatureImpact | dict],
+    top_features: Sequence[FeatureImpact | Mapping[str, FeaturePayloadValue]],
     *,
     api_key: str | None = None,
 ) -> Explanation:
@@ -37,7 +39,7 @@ def explain_result(result: DiagnosisResult, *, api_key: str | None = None) -> Ex
 def _explain_with_gemini(
     prediction: str,
     confidence: float,
-    top_features: list[FeatureImpact],
+    top_features: Sequence[FeatureImpact],
     api_key: str,
 ) -> Explanation:
     agent = MedicalDiagnosisAgent(api_key=api_key)
@@ -55,7 +57,7 @@ def _explain_with_gemini(
     return Explanation(explanation=str(text), disclaimer=str(disclaimer))
 
 
-def _static_explanation(prediction: str, confidence: float, top_features: list[FeatureImpact]) -> Explanation:
+def _static_explanation(prediction: str, confidence: float, top_features: Sequence[FeatureImpact]) -> Explanation:
     feature_names = ", ".join(feature.feature for feature in top_features[:3])
     text = (
         f"O modelo indicou resultado {prediction.upper()} com {confidence:.0%} de confianca. "
@@ -65,7 +67,7 @@ def _static_explanation(prediction: str, confidence: float, top_features: list[F
     return Explanation(explanation=text, disclaimer=DISCLAIMER)
 
 
-def _normalize_feature(feature: FeatureImpact | dict) -> FeatureImpact:
+def _normalize_feature(feature: FeatureImpact | Mapping[str, FeaturePayloadValue]) -> FeatureImpact:
     if isinstance(feature, FeatureImpact):
         return feature
     return FeatureImpact(
