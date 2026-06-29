@@ -1,13 +1,19 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from tech_challenge.diagnosis import diagnose_patient
 from tech_challenge.experiments import load_ag_results
-from tech_challenge.explanation import explain_diagnosis
+from tech_challenge.explanation import (
+    LLMConfigurationError,
+    LLMProviderError,
+    chat_about_diagnosis,
+    explain_diagnosis,
+)
 
 app = FastAPI(title="Tech Challenge Fase 2 API", version="0.1.0")
 
@@ -37,6 +43,17 @@ class ExplainRequest(BaseModel):
 class ExplainResponse(BaseModel):
     explanation: str
     disclaimer: str
+    details: dict[str, Any]
+
+
+class ChatRequest(BaseModel):
+    question: str
+    context: dict[str, Any] | None = None
+
+
+class ChatResponse(BaseModel):
+    answer: str
+    details: dict[str, Any]
 
 
 class AGExperiment(BaseModel):
@@ -83,12 +100,32 @@ def diagnose(req: DiagnoseRequest) -> DiagnoseResponse:
 
 @app.post("/explain", response_model=ExplainResponse)
 def explain(req: ExplainRequest) -> ExplainResponse:
-    result = explain_diagnosis(
-        prediction=req.prediction,
-        confidence=req.confidence,
-        top_features=[feature.model_dump() for feature in req.top_features],
-    )
-    return ExplainResponse(explanation=result.explanation, disclaimer=result.disclaimer)
+    try:
+        result = explain_diagnosis(
+            prediction=req.prediction,
+            confidence=req.confidence,
+            top_features=[feature.model_dump() for feature in req.top_features],
+        )
+    except LLMConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except LLMProviderError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    return ExplainResponse(explanation=result.explanation, disclaimer=result.disclaimer, details=result.details)
+
+
+@app.post("/chat", response_model=ChatResponse)
+def chat(req: ChatRequest) -> ChatResponse:
+    try:
+        result = chat_about_diagnosis(question=req.question, context=req.context)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except LLMConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except LLMProviderError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    return ChatResponse(answer=result.answer, details=result.details)
 
 
 @app.get("/ag-results", response_model=AGResultsResponse)

@@ -21,6 +21,10 @@ def main() -> None:
 
     if "diagnosis" not in st.session_state:
         st.session_state.diagnosis = None
+    if "llm_explanation" not in st.session_state:
+        st.session_state.llm_explanation = None
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
 
     if page == "Tela 1 - Diagnostico":
         _diagnosis_screen()
@@ -40,6 +44,8 @@ def _diagnosis_screen() -> None:
             resp = requests.post(f"{API_URL}/diagnose", json={"patient_index": patient_index}, timeout=30)
             resp.raise_for_status()
             st.session_state.diagnosis = resp.json()
+            st.session_state.llm_explanation = None
+            st.session_state.chat_history = []
 
     if st.session_state.diagnosis:
         diagnosis: dict[str, Any] = st.session_state.diagnosis
@@ -73,18 +79,75 @@ def _explanation_screen() -> None:
 
     if st.button("Gerar Explicacao Medica"):
         with st.spinner("Consultando modulo de explicacao..."):
-            resp = requests.post(f"{API_URL}/explain", json=diagnosis, timeout=60)
-            resp.raise_for_status()
-            result = resp.json()
+            try:
+                resp = requests.post(f"{API_URL}/explain", json=diagnosis, timeout=60)
+                resp.raise_for_status()
+            except requests.HTTPError as exc:
+                st.error(_api_error_message(exc.response))
+                return
+            except requests.RequestException as exc:
+                st.error(f"Nao foi possivel conectar ao servico: {exc}")
+                return
+            st.session_state.llm_explanation = resp.json()
+
+    if st.session_state.llm_explanation:
+        result: dict[str, Any] = st.session_state.llm_explanation
+        details = result.get("details", {})
 
         st.markdown("### Explicacao")
         st.write(result["explanation"])
+
+        if details.get("nivel_confianca"):
+            st.markdown(f"**Nivel de confianca:** {details['nivel_confianca']}")
+
+        if details.get("recomendacoes"):
+            st.markdown("### Recomendacoes")
+            for item in details["recomendacoes"]:
+                st.write(f"- {item}")
+
+        if details.get("exames_complementares"):
+            st.markdown("### Exames complementares")
+            for item in details["exames_complementares"]:
+                st.write(f"- {item}")
+
         st.warning(result["disclaimer"])
 
         def _copy_toast() -> None:
             st.toast("Texto copiado!")
 
         st.button("Copiar para relatorio", on_click=_copy_toast)
+
+        st.markdown("### Perguntas de acompanhamento")
+        for message in st.session_state.chat_history:
+            with st.chat_message(message["role"]):
+                st.write(message["content"])
+
+        question = st.chat_input("Pergunte sobre a interpretacao deste caso")
+        if question:
+            st.session_state.chat_history.append({"role": "user", "content": question})
+            with st.chat_message("user"):
+                st.write(question)
+
+            context = {"diagnosis": diagnosis, "explanation": result}
+            with st.chat_message("assistant"):
+                with st.spinner("Consultando agente LLM..."):
+                    try:
+                        resp = requests.post(
+                            f"{API_URL}/chat",
+                            json={"question": question, "context": context},
+                            timeout=60,
+                        )
+                        resp.raise_for_status()
+                    except requests.HTTPError as exc:
+                        answer = _api_error_message(exc.response)
+                        st.error(answer)
+                    except requests.RequestException as exc:
+                        answer = f"Nao foi possivel conectar ao servico: {exc}"
+                        st.error(answer)
+                    else:
+                        answer = resp.json()["answer"]
+                        st.write(answer)
+            st.session_state.chat_history.append({"role": "assistant", "content": answer})
 
 
 def _ag_results_screen() -> None:
@@ -124,6 +187,22 @@ def _ag_results_screen() -> None:
 
     st.subheader("Melhor configuracao encontrada")
     st.json(best)
+
+
+def _api_error_message(response: requests.Response | None) -> str:
+    if response is None:
+        return "Nao foi possivel conectar ao servico."
+
+    try:
+        detail = response.json().get("detail")
+    except ValueError:
+        detail = response.text
+
+    if response.status_code == 503:
+        return f"LLM nao configurado: {detail}"
+    if response.status_code == 502:
+        return f"Falha no provedor LLM: {detail}"
+    return f"Erro da API ({response.status_code}): {detail}"
 
 
 if __name__ == "__main__":
