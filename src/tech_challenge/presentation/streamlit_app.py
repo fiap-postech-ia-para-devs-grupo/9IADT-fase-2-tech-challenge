@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import os
 from typing import Any
 
 import matplotlib.pyplot as plt
@@ -7,7 +9,7 @@ import pandas as pd
 import requests
 import streamlit as st
 
-API_URL = "http://localhost:8000"
+API_URL = os.getenv("TECH_CHALLENGE_API_URL", "http://localhost:8000")
 
 
 def main() -> None:
@@ -37,12 +39,28 @@ def main() -> None:
 def _diagnosis_screen() -> None:
     st.title("Diagnostico - Modelo Otimizado")
 
-    patient_index: int = st.selectbox("Selecionar paciente (indice do dataset)", range(0, 569)) or 0  # type: ignore[assignment]
+    try:
+        metadata = _patient_metadata()
+    except requests.RequestException as exc:
+        st.error(f"Nao foi possivel carregar os pacientes da API: {exc}")
+        return
+
+    patient_index: int = st.selectbox(
+        "Selecionar paciente (indice do dataset)",
+        range(metadata["min_index"], metadata["max_index"] + 1),
+    ) or metadata["min_index"]  # type: ignore[assignment]
 
     if st.button("Executar Diagnostico"):
         with st.spinner("Rodando modelo..."):
-            resp = requests.post(f"{API_URL}/diagnose", json={"patient_index": patient_index}, timeout=30)
-            resp.raise_for_status()
+            try:
+                resp = requests.post(f"{API_URL}/diagnose", json={"patient_index": patient_index}, timeout=30)
+                resp.raise_for_status()
+            except requests.HTTPError as exc:
+                st.error(_api_error_message(exc.response))
+                return
+            except requests.RequestException as exc:
+                st.error(f"Nao foi possivel conectar ao servico: {exc}")
+                return
             st.session_state.diagnosis = resp.json()
             st.session_state.llm_explanation = None
             st.session_state.chat_history = []
@@ -145,7 +163,7 @@ def _explanation_screen() -> None:
                         answer = f"Nao foi possivel conectar ao servico: {exc}"
                         st.error(answer)
                     else:
-                        answer = resp.json()["answer"]
+                        answer = _chat_answer_text(resp.json()["answer"])
                         st.write(answer)
             st.session_state.chat_history.append({"role": "assistant", "content": answer})
 
@@ -153,40 +171,53 @@ def _explanation_screen() -> None:
 def _ag_results_screen() -> None:
     st.title("Resultados do Algoritmo Genetico")
 
-    resp = requests.get(f"{API_URL}/ag-results", timeout=30)
-    resp.raise_for_status()
+    try:
+        resp = requests.get(f"{API_URL}/ag-results", timeout=30)
+        resp.raise_for_status()
+    except requests.HTTPError as exc:
+        st.error(_api_error_message(exc.response))
+        return
+    except requests.RequestException as exc:
+        st.error(f"Nao foi possivel conectar ao servico: {exc}")
+        return
     data = resp.json()
 
     experiments = data["experiments"]
-    baseline = data["baseline_f1"]
+    baseline = data["baseline"]
     best = data["best_config"]
 
     st.subheader("Comparativo: Baseline vs Experimentos AG")
-    rows = [{"Modelo": "RF Baseline", "F1": baseline, "Pop": "-", "Gen": "-", "Mut": "-"}]
-    for experiment in experiments:
-        rows.append(
-            {
-                "Modelo": experiment["name"],
-                "F1": experiment["best_f1"],
-                "Pop": experiment["population"],
-                "Gen": experiment["generations"],
-                "Mut": f"{experiment['mutation_rate']:.0%}",
-            }
-        )
-    st.dataframe(pd.DataFrame(rows), use_container_width=True)
+    st.dataframe(pd.DataFrame(_ag_result_rows(experiments, baseline)), width="stretch")
 
     st.subheader("Convergencia por experimento")
     fig, ax = plt.subplots()
     for experiment in experiments:
         ax.plot(experiment["convergence"], label=experiment["name"])
-    ax.axhline(baseline, color="gray", linestyle="--", label="Baseline")
+    ax.axhline(baseline["metrics"]["f1"], color="gray", linestyle="--", label="Baseline F1")
     ax.set_xlabel("Geracao (amostrada)")
-    ax.set_ylabel("F1-score")
+    ax.set_ylabel("Fitness")
     ax.legend()
     st.pyplot(fig)
 
     st.subheader("Melhor configuracao encontrada")
+    st.write(f"Experimento: {data['best_experiment']}")
     st.json(best)
+
+    if data.get("best_model"):
+        st.subheader("Resumo do melhor modelo")
+        st.json(data["best_model"])
+
+
+@st.cache_data(ttl=60)
+def _patient_metadata() -> dict[str, int]:
+    resp = requests.get(f"{API_URL}/patients/metadata", timeout=30)
+    resp.raise_for_status()
+    data = resp.json()
+    return {
+        "count": int(data["count"]),
+        "min_index": int(data["min_index"]),
+        "max_index": int(data["max_index"]),
+    }
 
 
 def _api_error_message(response: requests.Response | None) -> str:
@@ -203,6 +234,52 @@ def _api_error_message(response: requests.Response | None) -> str:
     if response.status_code == 502:
         return f"Falha no provedor LLM: {detail}"
     return f"Erro da API ({response.status_code}): {detail}"
+
+
+def _chat_answer_text(answer: Any) -> str:
+    if isinstance(answer, dict):
+        return str(answer.get("resposta") or answer.get("answer") or answer.get("response") or answer)
+
+    text = str(answer).strip()
+    if not text.startswith("{"):
+        return text
+
+    try:
+        payload = json.loads(text)
+    except ValueError:
+        return text
+
+    if isinstance(payload, dict):
+        return str(payload.get("resposta") or payload.get("answer") or payload.get("response") or text)
+    return text
+
+
+def _ag_result_rows(experiments: list[dict[str, Any]], baseline: dict[str, Any]) -> list[dict[str, Any]]:
+    rows = [
+        {
+            "Modelo": baseline["name"],
+            "F1": baseline["metrics"]["f1"],
+            "Recall": baseline["metrics"].get("recall"),
+            "Equity Gap": baseline["metrics"].get("equity_gap"),
+            "Pop": "-",
+            "Gen": "-",
+            "Mut": "-",
+        }
+    ]
+    for experiment in experiments:
+        metrics = experiment["test_metrics"]
+        rows.append(
+            {
+                "Modelo": experiment["name"],
+                "F1": metrics["f1"],
+                "Recall": metrics.get("recall"),
+                "Equity Gap": metrics.get("equity_gap"),
+                "Pop": str(experiment["population"]),
+                "Gen": str(experiment["generations"]),
+                "Mut": f"{experiment['mutation_rate']:.0%}",
+            }
+        )
+    return rows
 
 
 if __name__ == "__main__":

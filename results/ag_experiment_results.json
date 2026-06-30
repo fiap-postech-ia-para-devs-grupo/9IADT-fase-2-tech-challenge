@@ -1,0 +1,95 @@
+{
+  "source": {
+    "notebook": "notebooks/tech_challenge_fase2.ipynb",
+    "cells": [18, 20, 22, 24],
+    "description": "Frozen output from the executed AG experiment notebook."
+  },
+  "baseline": {
+    "name": "baseline_fase1",
+    "metrics": {
+      "accuracy": 0.9649,
+      "precision": 0.975,
+      "recall": 0.9286,
+      "f1": 0.9512,
+      "roc_auc": 0.996,
+      "equity_gap": 0.075
+    }
+  },
+  "rf_baseline": {
+    "name": "RF_Baseline",
+    "metrics": {
+      "accuracy": 0.9737,
+      "precision": 1.0,
+      "recall": 0.9286,
+      "f1": 0.963,
+      "roc_auc": 0.9929
+    },
+    "false_negatives": 3
+  },
+  "experiments": [
+    {
+      "name": "Exp1_Pequeno",
+      "population": 15,
+      "generations": 10,
+      "mutation_rate": 0.15,
+      "best_fitness": 0.5711,
+      "test_metrics": {
+        "accuracy": 0.9825,
+        "precision": 1.0,
+        "recall": 0.9524,
+        "f1": 0.9756,
+        "roc_auc": 0.9967,
+        "equity_gap": 0.05
+      },
+      "convergence": [0.5698, 0.5698, 0.57, 0.5711, 0.5711, 0.5711, 0.5711, 0.5711, 0.5711, 0.5711]
+    },
+    {
+      "name": "Exp2_Medio",
+      "population": 25,
+      "generations": 15,
+      "mutation_rate": 0.2,
+      "best_fitness": 0.5687,
+      "test_metrics": {
+        "accuracy": 0.9737,
+        "precision": 0.9756,
+        "recall": 0.9524,
+        "f1": 0.9639,
+        "roc_auc": 0.9947,
+        "equity_gap": 0.05
+      },
+      "convergence": [0.5676, 0.5676, 0.5676, 0.5676, 0.5676, 0.5676, 0.5676, 0.5687, 0.5687, 0.5687, 0.5687, 0.5687, 0.5687, 0.5687, 0.5687]
+    },
+    {
+      "name": "Exp3_Explorador",
+      "population": 30,
+      "generations": 20,
+      "mutation_rate": 0.35,
+      "best_fitness": 0.5723,
+      "test_metrics": {
+        "accuracy": 0.9825,
+        "precision": 1.0,
+        "recall": 0.9524,
+        "f1": 0.9756,
+        "roc_auc": 0.9967,
+        "equity_gap": 0.05
+      },
+      "convergence": [0.5687, 0.5687, 0.5711, 0.5711, 0.5723, 0.5723, 0.5723, 0.5723, 0.5723, 0.5723, 0.5723, 0.5723, 0.5723, 0.5723, 0.5723, 0.5723, 0.5723, 0.5723, 0.5723, 0.5723]
+    }
+  ],
+  "best_experiment": "Exp1_Pequeno",
+  "best_config": {
+    "model_type": "logreg",
+    "C": 0.5782,
+    "penalty": "l2"
+  },
+  "best_model": {
+    "recalls_subgroup": {
+      "A_pequeno": 1.0,
+      "B_grande": 0.95
+    },
+    "false_negatives": 2,
+    "delta_f1_vs_rf_baseline": 0.0126,
+    "delta_recall_vs_rf_baseline": 0.0238,
+    "false_negative_reduction_vs_rf_baseline": 1
+  }
+}

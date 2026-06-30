@@ -131,12 +131,13 @@ Pergunta do médico:
         )
 
         response_text = response.text or ""
+        cleaned = self._clean_json(response_text)
 
         try:
-            return json.loads(response_text)
+            return json.loads(cleaned)
 
         except Exception:
-            return {"resposta": response_text}
+            return {"resposta": cleaned}
 
 
 def gerar_explicacao(predicao: int, confianca: float, top_features: dict) -> dict:

@@ -2,9 +2,9 @@
   "name": "tech-challenge-fase2",
   "version": "0.1.0",
   "scripts": {
-    "api": "uv run uvicorn tech_challenge.adapters.api:app --reload --port 8000",
-    "app": "uv run streamlit run src/tech_challenge/presentation/streamlit_app.py",
-    "install": "uv sync --frozen",
+    "api": "UV_LINK_MODE=copy uv run uvicorn tech_challenge.adapters.api:app --reload --port 8000",
+    "app": "UV_LINK_MODE=copy uv run streamlit run src/tech_challenge/presentation/streamlit_app.py",
+    "install": "UV_LINK_MODE=copy uv sync --frozen",
     "dev": "concurrently \"npm run api\" \"npm run app\""
   },
   "devDependencies": {

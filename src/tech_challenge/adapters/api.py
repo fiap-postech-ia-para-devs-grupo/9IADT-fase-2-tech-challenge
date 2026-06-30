@@ -6,7 +6,7 @@ from typing import Any
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-from tech_challenge.diagnosis import diagnose_patient
+from tech_challenge.diagnosis import diagnose_patient, patient_metadata
 from tech_challenge.experiments import load_ag_results
 from tech_challenge.explanation import (
     LLMConfigurationError,
@@ -56,32 +56,45 @@ class ChatResponse(BaseModel):
     details: dict[str, Any]
 
 
+class PatientMetadataResponse(BaseModel):
+    count: int
+    min_index: int
+    max_index: int
+
+
 class AGExperiment(BaseModel):
     name: str
     population: int
     generations: int
     mutation_rate: float
-    best_f1: float
+    best_fitness: float
+    test_metrics: dict[str, float]
     convergence: list[float]
 
 
-class BestConfig(BaseModel):
-    experiment: str
-    n_estimators: int
-    max_depth: int
-    min_samples_split: int
-    max_features: str
+class Baseline(BaseModel):
+    name: str
+    metrics: dict[str, float]
 
 
 class AGResultsResponse(BaseModel):
     experiments: list[AGExperiment]
-    baseline_f1: float
-    best_config: BestConfig
+    baseline: Baseline
+    best_experiment: str
+    best_config: dict[str, Any]
+    rf_baseline: dict[str, Any]
+    best_model: dict[str, Any]
+    source: dict[str, Any]
 
 
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/patients/metadata", response_model=PatientMetadataResponse)
+def patients_metadata() -> PatientMetadataResponse:
+    return PatientMetadataResponse(**asdict(patient_metadata()))
 
 
 @app.post("/diagnose", response_model=DiagnoseResponse)

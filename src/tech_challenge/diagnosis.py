@@ -28,6 +28,13 @@ class DiagnosisResult:
     genes: dict[str, Any]
 
 
+@dataclass(frozen=True)
+class PatientMetadata:
+    count: int
+    min_index: int
+    max_index: int
+
+
 class DiagnosisModule:
     """Deep diagnosis module: dataset lookup, model loading, prediction, and feature ranking."""
 
@@ -47,6 +54,10 @@ class DiagnosisModule:
 
         raw_features = self._patient_features(patient_index)
         return self.diagnose_features(raw_features)
+
+    def patient_metadata(self) -> PatientMetadata:
+        count = len(self.dataset)
+        return PatientMetadata(count=count, min_index=0, max_index=count - 1)
 
     def diagnose_features(self, raw_features: dict[str, float]) -> DiagnosisResult:
         x = pd.DataFrame([raw_features])[self.features]
@@ -115,3 +126,7 @@ def get_diagnosis_module() -> DiagnosisModule:
 
 def diagnose_patient(patient_index: int) -> DiagnosisResult:
     return get_diagnosis_module().diagnose_patient(patient_index)
+
+
+def patient_metadata() -> PatientMetadata:
+    return get_diagnosis_module().patient_metadata()

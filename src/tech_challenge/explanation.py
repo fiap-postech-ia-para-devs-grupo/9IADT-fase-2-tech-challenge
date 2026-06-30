@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -70,7 +71,7 @@ def chat_about_diagnosis(
         msg = f"LLM provider returned an error: {response['error']}"
         raise LLMProviderError(msg)
 
-    answer = response.get("resposta") or response.get("answer") or response.get("response")
+    answer = _extract_answer(response)
     if not answer:
         msg = "LLM response did not include an answer"
         raise LLMProviderError(msg)
@@ -121,11 +122,32 @@ def _normalize_feature(feature: FeatureImpact | Mapping[str, FeaturePayloadValue
     )
 
 
+def _extract_answer(response: Mapping[str, Any]) -> str | None:
+    answer = response.get("resposta") or response.get("answer") or response.get("response")
+    if not isinstance(answer, str):
+        return str(answer) if answer is not None else None
+
+    text = answer.strip()
+    if not text.startswith("{"):
+        return text
+
+    try:
+        payload = json.loads(text)
+    except ValueError:
+        return text
+
+    if not isinstance(payload, Mapping):
+        return text
+
+    nested_answer = payload.get("resposta") or payload.get("answer") or payload.get("response")
+    return str(nested_answer) if nested_answer is not None else text
+
+
 def _google_api_key() -> str:
     load_dotenv()
     key = os.getenv("GOOGLE_API_KEY")
     if not key:
-        msg = "GOOGLE_API_KEY is required for LLM explanation. Set LLM_MODE=mock only in an explicit mock implementation."
+        msg = "GOOGLE_API_KEY is required for LLM explanation. Set it in your environment or .env file."
         raise LLMConfigurationError(msg)
     return key
 
