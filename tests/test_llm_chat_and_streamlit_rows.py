@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from typing import Any, cast
 
 from tech_challenge.adapters.api import ag_results, patients_metadata
 from tech_challenge.experiments import load_ag_results
@@ -31,7 +32,7 @@ class ChatParsingTests(unittest.TestCase):
     def test_agent_chat_extracts_fenced_json_answer(self) -> None:
         agent = MedicalDiagnosisAgent.__new__(MedicalDiagnosisAgent)
         agent.model_name = "fake"
-        agent.client = _FakeClient('```json\n{"resposta": "Texto de chat."}\n```')
+        agent.client = cast(Any, _FakeClient('```json\n{"resposta": "Texto de chat."}\n```'))
 
         self.assertEqual(agent.chat("Pergunta?")["resposta"], "Texto de chat.")
 
