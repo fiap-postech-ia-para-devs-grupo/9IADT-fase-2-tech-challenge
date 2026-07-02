@@ -1,4 +1,4 @@
-# 9IADT — Tech Challenge
+# 9IADT Fase 2 Tech Challenge
 
 Sistema de suporte ao diagnóstico do câncer de mama usando Machine Learning, Algoritmos Genéticos e LLMs.
 
