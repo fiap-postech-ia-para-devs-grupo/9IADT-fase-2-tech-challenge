@@ -167,6 +167,19 @@ class PatientTableTests(unittest.TestCase):
         self.assertTrue(filtered_by_diagnosis.empty)
         self.assertEqual(filtered_by_id["Índice"].tolist(), [1])
 
+    def test_patient_table_filters_by_real_diagnosis_label(self) -> None:
+        rows = pd.DataFrame(
+            [
+                {"Índice": 0, "ID": 10, "Diagnóstico real": "Maligno", "Raio médio": 3.0},
+                {"Índice": 1, "ID": 20, "Diagnóstico real": "Benigno", "Raio médio": 1.0},
+                {"Índice": 2, "ID": 30, "Diagnóstico real": "Benigno", "Raio médio": 2.0},
+            ]
+        )
+
+        filtered_rows = filter_patient_table(rows, "", diagnosis_label="Benigno")
+
+        self.assertEqual(filtered_rows["Índice"].tolist(), [1, 2])
+
     def test_patient_table_sort_and_paginate(self) -> None:
         rows = pd.DataFrame(
             [

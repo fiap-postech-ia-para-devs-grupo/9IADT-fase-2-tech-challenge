@@ -70,12 +70,19 @@ def patient_table_rows(dataset: pd.DataFrame, min_index: int, max_index: int) ->
     return rows[list(PATIENT_TABLE_COLUMNS)].rename(columns=PATIENT_TABLE_COLUMNS)
 
 
-def filter_patient_table(rows: pd.DataFrame, query: str) -> pd.DataFrame:
+def filter_patient_table(rows: pd.DataFrame, query: str, diagnosis_label: str = "Todos") -> pd.DataFrame:
     normalized_query = query.strip()
-    if not normalized_query:
-        return rows
+    filtered_rows = rows
 
-    return rows[rows["ID"].astype(str).str.contains(normalized_query, na=False)]
+    if not normalized_query:
+        filtered_rows = rows
+    else:
+        filtered_rows = rows[rows["ID"].astype(str).str.contains(normalized_query, na=False)]
+
+    if diagnosis_label != "Todos":
+        filtered_rows = filtered_rows[filtered_rows["Diagnóstico real"] == diagnosis_label]
+
+    return filtered_rows
 
 
 def sort_patient_table(rows: pd.DataFrame, sort_column: str, ascending: bool) -> pd.DataFrame:
