@@ -8,9 +8,10 @@ uv sync --frozen
 
 npm install
 
-uv run python -m ipykernel install --user --name fiap-tech-challenge --display-name "Python (fiap-tech-challenge)"
+uv run python -m ipykernel install --user --name tech-challenge-fase2 --display-name "Python (tech-challenge-fase2)"
 
 # Create .claude/skills symlink pointing to .agents/skills
-mkdir -p /workspaces/9IADT-tech-challenge/.agents/skills
-mkdir -p /workspaces/9IADT-tech-challenge/.claude
-ln -sf /workspaces/9IADT-tech-challenge/.agents/skills /workspaces/9IADT-tech-challenge/.claude/skills
+workspace_dir="$(pwd -P)"
+mkdir -p "$workspace_dir/.agents/skills"
+mkdir -p "$workspace_dir/.claude"
+ln -sf "$workspace_dir/.agents/skills" "$workspace_dir/.claude/skills"

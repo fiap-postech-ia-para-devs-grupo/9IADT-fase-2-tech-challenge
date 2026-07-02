@@ -2,19 +2,23 @@
 
 Sistema de suporte ao diagnóstico do câncer de mama usando Machine Learning, Algoritmos Genéticos e LLMs.
 
+Repositório da Fase 2:
+`git@github.com:fiap-postech-ia-para-devs-grupo/9IADT-fase-2-tech-challenge.git`
+
 ## Requisitos
 
 | Ferramenta | Versão mínima | Instalação |
 | :--- | :--- | :--- |
 | Python | 3.11 | [python.org](https://www.python.org/downloads/) |
 | uv | 0.4+ | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| Node.js | 20+ | [nodejs.org](https://nodejs.org/) |
 
 ## Configuração do ambiente
 
 ```bash
 # 1. Clone o repositório
-git clone <repo-url>
-cd 9IADT-tech-challenge
+git clone git@github.com:fiap-postech-ia-para-devs-grupo/9IADT-fase-2-tech-challenge.git
+cd 9IADT-fase-2-tech-challenge
 
 # 2. Copie o arquivo de variáveis de ambiente
 cp .env.example .env
@@ -35,8 +39,6 @@ uv sync --frozen
 ## Como rodar
 
 ### API + Interface juntos (recomendado)
-
-Requer Node.js instalado.
 
 ```bash
 npm install
@@ -73,8 +75,8 @@ uv run jupyter notebook
 
 | Notebook | Descrição |
 | :--- | :--- |
-| `notebooks/tech_challenge_fase1.ipynb` | Análise exploratória, baselines KNN/RF e visão computacional |
-| `notebooks/tech_challenge_fase2.ipynb` | Algoritmos Genéticos, integração LLM e pipeline completo |
+| `notebooks/tech_challenge_fase1.ipynb` | Base exploratória herdada da Fase 1: EDA, baselines KNN/RF e visão computacional |
+| `notebooks/tech_challenge_fase2.ipynb` | Desenvolvimento da Fase 2: Algoritmos Genéticos, integração LLM e pipeline completo |
 
 ## Devcontainer (VS Code)
 

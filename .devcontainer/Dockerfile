@@ -35,4 +35,4 @@ RUN printf '%s\n' \
     && chmod +x /usr/local/bin/github-askpass
 
 
-WORKDIR /workspaces/fase-1-tech-challenge
+WORKDIR /workspaces/9IADT-fase-2-tech-challenge

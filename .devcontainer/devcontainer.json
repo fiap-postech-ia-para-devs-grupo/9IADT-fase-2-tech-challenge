@@ -1,5 +1,5 @@
 {
-  "name": "fiap-tech-challenge",
+  "name": "9IADT Fase 2 Tech Challenge",
   "build": {
     "dockerfile": "Dockerfile",
     "context": ".."
@@ -38,7 +38,7 @@
   "customizations": {
     "vscode": {
       "settings": {
-        "python.defaultInterpreterPath": "/workspaces/9IADT-tech-challenge/.venv/bin/python",
+        "python.defaultInterpreterPath": "${containerWorkspaceFolder}/.venv/bin/python",
         "python.terminal.activateEnvironment": false,
         "jupyter.jupyterServerType": "local"
       },
