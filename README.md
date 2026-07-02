@@ -28,8 +28,7 @@ Edite o `.env` e preencha as chaves de API:
 
 | Variável | Obrigatória | Descrição |
 | :--- | :--- | :--- |
-| `GOOGLE_API_KEY` | Sim | Chave da API Gemini (Google AI Studio) |
-| `GROQ_API_KEY` | Opcional | Chave da API Groq (provider alternativo) |
+| `GEMINI_API_KEY` | Sim | Chave da API Gemini (Google AI Studio) |
 
 ```bash
 # 3. Instale as dependências via uv
@@ -67,7 +66,7 @@ uv run streamlit run src/tech_challenge/presentation/streamlit_app.py
 
 Acesse `http://localhost:8501`.
 
-### Notebooks
+### Notebook da Fase 2
 
 ```bash
 uv run jupyter notebook
@@ -75,12 +74,30 @@ uv run jupyter notebook
 
 | Notebook | Descrição |
 | :--- | :--- |
-| `notebooks/tech_challenge_fase1.ipynb` | Base exploratória herdada da Fase 1: EDA, baselines KNN/RF e visão computacional |
 | `notebooks/tech_challenge_fase2.ipynb` | Desenvolvimento da Fase 2: Algoritmos Genéticos, integração LLM e pipeline completo |
 
 ## Devcontainer (VS Code)
 
 Abra o repositório no VS Code e aceite a sugestão de **Reopen in Container**. O ambiente é configurado automaticamente via `.devcontainer/`.
+
+## Arquitetura macro
+
+```mermaid
+flowchart LR
+    U[Usuário] --> F[Streamlit Frontend]
+    F --> A[FastAPI]
+    A --> P[Diagnosis Pipeline]
+    P --> M[Modelo AG otimizado]
+    P --> L[Gemini LLM]
+    M --> P
+    L --> P
+    P --> A
+    A --> F
+
+    N[Notebook Fase 2] --> M
+    N --> R[Resultados AG]
+    R --> A
+```
 
 ## Estrutura do projeto
 
@@ -92,10 +109,10 @@ Abra o repositório no VS Code e aceite a sugestão de **Reopen in Container**. 
 │   ├── diagnosis.py             # Módulo de diagnóstico
 │   ├── explanation.py           # Módulo de explicação
 │   └── experiments.py           # Resultados de experimentos para apresentação
-├── notebooks/                   # Notebooks de estudo e exploração
+├── notebooks/                   # Notebook principal da Fase 2
 ├── data/                        # Dataset Wisconsin Breast Cancer
-├── model/                       # Modelo treinado (.pkl)
-└── results/                     # Resultados gerados pelo pipeline
+├── model/                       # Melhor modelo otimizado pelo AG (.pkl)
+└── results/                     # Resultado consolidado dos experimentos do AG
 ```
 
 ## Atualização dos resultados do AG
@@ -103,3 +120,9 @@ Abra o repositório no VS Code e aceite a sugestão de **Reopen in Container**. 
 A tela de resultados do Algoritmo Genético consome `results/ag_experiment_results.json`. Esse arquivo é um artefato congelado das saídas executadas em `notebooks/tech_challenge_fase2.ipynb`, principalmente as seções de execução dos experimentos, comparação e persistência do melhor modelo.
 
 Quando os experimentos forem alterados, execute novamente o notebook e atualize `results/ag_experiment_results.json` com os novos valores finais. A API e o Streamlit apenas carregam esse artefato; eles não reimplementam o motor do AG.
+
+## Referência da Fase 1
+
+A Fase 1 é usada apenas como referência comparativa para a Fase 2. O resultado base citado no comparativo do AG é: acurácia `0.9649`, precisão `0.9750`, recall `0.9286`, F1 `0.9512`, ROC AUC `0.9960` e equity gap `0.0750`.
+
+O código exploratório, notebook e artefatos intermediários da Fase 1 não fazem parte deste repositório, que permanece focado na entrega da Fase 2.

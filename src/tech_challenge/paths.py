@@ -9,5 +9,4 @@ RESULTS_DIR = PROJECT_ROOT / "results"
 
 BREAST_CANCER_DATASET = DATA_DIR / "breast-cancer-wisconsin-diagnostic-data-set.csv"
 BEST_MODEL = MODEL_DIR / "best_model.pkl"
-PIPELINE_RESULTS = RESULTS_DIR / "pipeline_results.csv"
 AG_EXPERIMENT_RESULTS = RESULTS_DIR / "ag_experiment_results.json"

@@ -44,7 +44,7 @@ def explain_diagnosis(
     api_key: str | None = None,
 ) -> Explanation:
     normalized_features = [_normalize_feature(feature) for feature in top_features]
-    key = api_key or _google_api_key()
+    key = api_key or _gemini_api_key()
     return _explain_with_gemini(prediction, confidence, normalized_features, key)
 
 
@@ -58,7 +58,7 @@ def chat_about_diagnosis(
         msg = "question must not be empty"
         raise ValueError(msg)
 
-    key = api_key or _google_api_key()
+    key = api_key or _gemini_api_key()
     agent = MedicalDiagnosisAgent(api_key=key)
 
     try:
@@ -143,11 +143,11 @@ def _extract_answer(response: Mapping[str, Any]) -> str | None:
     return str(nested_answer) if nested_answer is not None else text
 
 
-def _google_api_key() -> str:
+def _gemini_api_key() -> str:
     load_dotenv()
-    key = os.getenv("GOOGLE_API_KEY")
+    key = os.getenv("GEMINI_API_KEY")
     if not key:
-        msg = "GOOGLE_API_KEY is required for LLM explanation. Set it in your environment or .env file."
+        msg = "GEMINI_API_KEY is required for LLM explanation. Set it in your environment or .env file."
         raise LLMConfigurationError(msg)
     return key
 

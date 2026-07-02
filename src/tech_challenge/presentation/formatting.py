@@ -17,6 +17,12 @@ PATIENT_TABLE_COLUMNS = {
 }
 
 
+def percentage_text(value: float) -> str:
+    percentage = value * 100
+    text = f"{percentage:.2f}".rstrip("0").rstrip(".")
+    return f"{text}%"
+
+
 def chat_answer_text(answer: Any) -> str:
     if isinstance(answer, dict):
         return str(answer.get("resposta") or answer.get("answer") or answer.get("response") or answer)

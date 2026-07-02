@@ -4,6 +4,7 @@ import json
 
 import requests
 
+from tech_challenge.presentation.formatting import percentage_text
 from tech_challenge.presentation.streamlit_app import _api_error_message, _diagnosis_badge
 
 
@@ -24,3 +25,9 @@ def test_api_error_message_formats_known_statuses() -> None:
     assert _api_error_message(_response(503, {"detail": "missing key"})) == "LLM não configurado: missing key"
     assert _api_error_message(_response(502, {"detail": "bad gateway"})) == "Falha no provedor LLM: bad gateway"
     assert _api_error_message(_response(400, text="bad request")) == "Erro da API (400): bad request"
+
+
+def test_percentage_text_keeps_decimal_precision_when_needed() -> None:
+    assert percentage_text(0.9955) == "99.55%"
+    assert percentage_text(1.0) == "100%"
+    assert percentage_text(0.9) == "90%"

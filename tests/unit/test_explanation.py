@@ -103,9 +103,9 @@ def test_chat_about_diagnosis_wraps_provider_exception(monkeypatch) -> None:
         chat_about_diagnosis("Pergunta?", api_key="key")
 
 
-def test_google_api_key_is_required_when_not_provided(monkeypatch) -> None:
-    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+def test_gemini_api_key_is_required_when_not_provided(monkeypatch) -> None:
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     monkeypatch.setattr("tech_challenge.explanation.load_dotenv", lambda: None)
 
-    with pytest.raises(LLMConfigurationError, match="GOOGLE_API_KEY"):
+    with pytest.raises(LLMConfigurationError, match="GEMINI_API_KEY"):
         explain_diagnosis("BENIGNO", 0.8, [])

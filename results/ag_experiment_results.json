@@ -5,7 +5,7 @@
     "description": "Saída congelada do notebook executado de experimentos do AG."
   },
   "baseline": {
-    "name": "baseline_fase1",
+    "name": "baseline_referencia",
     "metrics": {
       "accuracy": 0.9649,
       "precision": 0.975,

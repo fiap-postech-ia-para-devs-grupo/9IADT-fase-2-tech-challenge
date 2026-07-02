@@ -15,6 +15,7 @@ from tech_challenge.presentation.formatting import (
     filter_patient_table,
     paginate_patient_table,
     patient_table_rows,
+    percentage_text,
 )
 
 API_URL = os.getenv("TECH_CHALLENGE_API_URL", "http://localhost:8000")
@@ -250,7 +251,7 @@ def _case_review_screen() -> None:
 def _diagnosis_panel(diagnosis: dict[str, Any], patient: dict[str, Any]) -> None:
     color = "red" if diagnosis["prediction"] == "MALIGNO" else "green"
     st.markdown(f"### Resultado do modelo: :{color}[{diagnosis['prediction']}]")
-    st.progress(diagnosis["confidence"], text=f"Confiança: {diagnosis['confidence']:.0%}")
+    st.progress(diagnosis["confidence"], text=f"Confiança: {percentage_text(diagnosis['confidence'])}")
 
     st.subheader("Principais atributos")
     features = diagnosis["top_features"]

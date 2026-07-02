@@ -78,6 +78,10 @@ target/
 # Jupyter Notebook
 .ipynb_checkpoints
 
+# Saídas geradas mantidas fora da entrega da Fase 2
+results/baseline_metrics.json
+results/pipeline_results.csv
+
 # IPython
 profile_default/
 ipython_config.py
