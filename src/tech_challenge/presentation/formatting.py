@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 
@@ -66,8 +66,9 @@ def ag_result_rows(experiments: list[dict[str, Any]], baseline: dict[str, Any]) 
 def patient_table_rows(dataset: pd.DataFrame, min_index: int, max_index: int) -> pd.DataFrame:
     rows = dataset.reset_index(names="patient_index")
     rows = rows[(rows["patient_index"] >= min_index) & (rows["patient_index"] <= max_index)].copy()
-    rows["diagnosis_label"] = rows["diagnosis"].map({"M": "Maligno", "B": "Benigno"}).fillna(rows["diagnosis"])
-    return rows[list(PATIENT_TABLE_COLUMNS)].rename(columns=PATIENT_TABLE_COLUMNS)
+    diagnosis = cast(pd.Series, rows["diagnosis"])
+    rows["diagnosis_label"] = diagnosis.map({"M": "Maligno", "B": "Benigno"}).fillna(diagnosis)
+    return rows.loc[:, list(PATIENT_TABLE_COLUMNS)].rename(columns=PATIENT_TABLE_COLUMNS)
 
 
 def filter_patient_table(rows: pd.DataFrame, query: str, diagnosis_label: str = "Todos") -> pd.DataFrame:
@@ -77,19 +78,21 @@ def filter_patient_table(rows: pd.DataFrame, query: str, diagnosis_label: str = 
     if not normalized_query:
         filtered_rows = rows
     else:
-        filtered_rows = rows[rows["ID"].astype(str).str.contains(normalized_query, na=False)]
+        id_matches = cast(pd.Series, rows["ID"].astype(str).str.contains(normalized_query, na=False))
+        filtered_rows = rows[id_matches]
 
     if diagnosis_label != "Todos":
-        filtered_rows = filtered_rows[filtered_rows["Diagnóstico real"] == diagnosis_label]
+        diagnosis_matches = cast(pd.Series, filtered_rows["Diagnóstico real"] == diagnosis_label)
+        filtered_rows = filtered_rows[diagnosis_matches]
 
-    return filtered_rows
+    return cast(pd.DataFrame, filtered_rows)
 
 
 def sort_patient_table(rows: pd.DataFrame, sort_column: str, ascending: bool) -> pd.DataFrame:
-    return rows.sort_values(sort_column, ascending=ascending, kind="mergesort")
+    return cast(pd.DataFrame, rows.sort_values(sort_column, ascending=ascending, kind="mergesort"))
 
 
 def paginate_patient_table(rows: pd.DataFrame, page: int, page_size: int) -> pd.DataFrame:
     start = (page - 1) * page_size
     end = start + page_size
-    return rows.iloc[start:end]
+    return cast(pd.DataFrame, rows.iloc[start:end])

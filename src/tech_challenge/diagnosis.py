@@ -62,7 +62,7 @@ class DiagnosisModule:
     def diagnose_features(self, raw_features: dict[str, float]) -> DiagnosisResult:
         x = pd.DataFrame([raw_features])[self.features]
         x_scaled = self.scaler.transform(x)
-        x_scaled_df = pd.DataFrame(x_scaled, columns=self.features)
+        x_scaled_df = pd.DataFrame(x_scaled, columns=pd.Index(self.features))
 
         prediction_id = int(self.model.predict(x_scaled_df)[0])
         probability = float(self.model.predict_proba(x_scaled_df)[0][prediction_id])

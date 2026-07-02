@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import Any
+from typing import Any, cast
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -185,7 +185,9 @@ def _diagnosis_badge(label: str) -> str:
 
 def _patient_table_footer(total_pages: int, total_rows: int) -> None:
     summary_col, page_size_col, prev_col, next_col = st.columns([2.5, 1.2, 0.9, 0.9], vertical_alignment="bottom")
-    summary_col.caption(f"{total_rows} pacientes encontrados · Página {st.session_state.patient_table_page} de {total_pages}")
+    summary_col.caption(
+        f"{total_rows} pacientes encontrados · Página {st.session_state.patient_table_page} de {total_pages}"
+    )
     selected_page_size = page_size_col.selectbox(
         "Linhas",
         [10, 25, 50, 100],
@@ -199,7 +201,9 @@ def _patient_table_footer(total_pages: int, total_rows: int) -> None:
     if prev_col.button("Anterior", disabled=st.session_state.patient_table_page <= 1, use_container_width=True):
         st.session_state.patient_table_page -= 1
         st.rerun()
-    if next_col.button("Próxima", disabled=st.session_state.patient_table_page >= total_pages, use_container_width=True):
+    if next_col.button(
+        "Próxima", disabled=st.session_state.patient_table_page >= total_pages, use_container_width=True
+    ):
         st.session_state.patient_table_page += 1
         st.rerun()
 
@@ -307,7 +311,9 @@ def _llm_panel(diagnosis: dict[str, Any]) -> None:
             st.write(f"- {item}")
 
     st.warning(result["disclaimer"])
-    st.button("Regerar Explicação Médica", use_container_width=True, on_click=_regenerate_llm_explanation, args=(diagnosis,))
+    st.button(
+        "Regerar Explicação Médica", use_container_width=True, on_click=_regenerate_llm_explanation, args=(diagnosis,)
+    )
 
     with st.expander("Perguntas de acompanhamento"):
         for message in st.session_state.chat_history:
@@ -381,7 +387,8 @@ def _clear_selected_case() -> None:
 
 def _selected_patient_record(patient_index: int) -> dict[str, Any]:
     dataset = _load_patient_dataset()
-    record = dataset.iloc[patient_index].to_dict()
+    raw_record = dataset.iloc[patient_index].to_dict()
+    record = cast(dict[str, Any], {str(key): value for key, value in raw_record.items()})
     record["diagnosis_label"] = "Maligno" if record["diagnosis"] == "M" else "Benigno"
     return record
 

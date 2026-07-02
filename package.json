@@ -5,9 +5,16 @@
     "api": "UV_LINK_MODE=copy uv run uvicorn tech_challenge.adapters.api:app --reload --port 8000",
     "app": "UV_LINK_MODE=copy uv run streamlit run src/tech_challenge/presentation/streamlit_app.py",
     "install": "UV_LINK_MODE=copy uv sync --frozen",
-    "dev": "concurrently \"npm run api\" \"npm run app\""
+    "dev": "concurrently \"npm run api\" \"npm run app\"",
+    "prepare": "husky",
+    "lint": "UV_LINK_MODE=copy uv run ruff check .",
+    "format": "UV_LINK_MODE=copy uv run ruff format .",
+    "format:check": "UV_LINK_MODE=copy uv run ruff format --check .",
+    "precommit": "npm run format:check && npm run lint",
+    "test": "UV_LINK_MODE=copy uv run python -m pytest -q"
   },
   "devDependencies": {
-    "concurrently": "^9.0.0"
+    "concurrently": "^9.0.0",
+    "husky": "^9.1.7"
   }
 }
