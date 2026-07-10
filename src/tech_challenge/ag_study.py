@@ -5,7 +5,7 @@ import random
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import joblib
 import numpy as np
@@ -22,12 +22,15 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.preprocessing import StandardScaler
+from sklearn.utils import Bunch
 
 from tech_challenge.paths import AG_EXPERIMENT_RESULTS, BEST_MODEL
 
 SEED = 42
 FITNESS_FORMULA = "0.6 * f1 + 0.4 * recall"
 CV_FOLDS = 3
+# scikit-learn 1.8 lacks metric annotations, so Pyright infers this parameter as str from its default.
+ZERO_DIVISION = cast(Any, 0)
 
 RF_BASELINE_CONFIG: dict[str, Any] = {
     "n_estimators": 100,
@@ -68,10 +71,13 @@ class StudyData:
 
 
 def prepare_data() -> StudyData:
-    dataset = load_breast_cancer()
+    dataset = cast(Bunch, load_breast_cancer(return_X_y=False))
     x = pd.DataFrame(dataset.data, columns=dataset.feature_names)
     y = 1 - pd.Series(dataset.target, name="target")
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.20, stratify=y, random_state=SEED)
+    x_train, x_test, y_train, y_test = cast(
+        tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series],
+        train_test_split(x, y, test_size=0.20, stratify=y, random_state=SEED),
+    )
     scaler = StandardScaler()
     x_train_scaled = pd.DataFrame(scaler.fit_transform(x_train), columns=x.columns, index=x_train.index)
     x_test_scaled = pd.DataFrame(scaler.transform(x_test), columns=x.columns, index=x_test.index)
@@ -114,8 +120,8 @@ class GeneticOptimizer:
             )
             prediction = model.predict(self.data.x_train_scaled.iloc[validation_index])
             expected = self.data.y_train.iloc[validation_index]
-            f1_values.append(f1_score(expected, prediction, zero_division=0))
-            recall_values.append(recall_score(expected, prediction, zero_division=0))
+            f1_values.append(float(f1_score(expected, prediction, zero_division=ZERO_DIVISION)))
+            recall_values.append(float(recall_score(expected, prediction, zero_division=ZERO_DIVISION)))
 
         metrics = {
             "f1": float(np.mean(f1_values)),
@@ -195,8 +201,8 @@ class GeneticOptimizer:
 def evaluate_on_test(data: StudyData, genes: dict[str, Any]) -> dict[str, Any]:
     model = build_model(genes)
     model.fit(data.x_train_scaled, data.y_train)
-    prediction = model.predict(data.x_test_scaled)
-    probability = model.predict_proba(data.x_test_scaled)[:, 1]
+    prediction = np.asarray(model.predict(data.x_test_scaled))
+    probability = np.asarray(model.predict_proba(data.x_test_scaled))[:, 1]
     matrix = confusion_matrix(data.y_test, prediction)
     return {
         "model": model,
@@ -221,7 +227,7 @@ def subgroup_analysis(data: StudyData, prediction: np.ndarray) -> dict[str, Any]
     counts: dict[str, int] = {}
     for name in np.unique(group):
         mask = group == name
-        recalls[str(name)] = float(recall_score(data.y_test[mask], prediction[mask], zero_division=0))
+        recalls[str(name)] = float(recall_score(data.y_test[mask], prediction[mask], zero_division=ZERO_DIVISION))
         counts[str(name)] = int(mask.sum())
     return {"feature": "mean radius", "training_median": median, "recall": recalls, "sample_count": counts}
 
