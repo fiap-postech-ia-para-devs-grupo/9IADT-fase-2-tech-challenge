@@ -154,6 +154,7 @@ activemq-data/
 # Environments
 .env
 .envrc
+results/llm_evaluations.jsonl
 .venv
 env/
 venv/

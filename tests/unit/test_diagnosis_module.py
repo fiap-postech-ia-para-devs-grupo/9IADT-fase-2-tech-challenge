@@ -24,6 +24,16 @@ class FakeModel:
         return np.array([[0.2, 0.8]])
 
 
+class FakeTreeModel:
+    feature_importances_ = np.array([0.3, 0.7])
+
+    def predict(self, frame: pd.DataFrame) -> np.ndarray:
+        return np.array([1])
+
+    def predict_proba(self, frame: pd.DataFrame) -> np.ndarray:
+        return np.array([[0.1, 0.9]])
+
+
 def test_diagnose_patient_maps_dataset_columns_and_ranks_impacts(tmp_path, monkeypatch) -> None:
     dataset_path = tmp_path / "patients.csv"
     dataset_path.write_text(
@@ -101,3 +111,25 @@ def test_patient_metadata_uses_dataset_bounds(tmp_path, monkeypatch) -> None:
     assert module.patient_metadata().count == 2
     assert module.patient_metadata().min_index == 0
     assert module.patient_metadata().max_index == 1
+
+
+def test_tree_model_ranks_local_shap_impacts(tmp_path, monkeypatch) -> None:
+    dataset_path = tmp_path / "patients.csv"
+    dataset_path.write_text("radius_mean,texture_mean\n20.0,5.0\n", encoding="utf-8")
+    monkeypatch.setattr(
+        "tech_challenge.diagnosis.joblib.load",
+        lambda _path: {
+            "model": FakeTreeModel(),
+            "scaler": FakeScaler(),
+            "features": ["mean radius", "mean texture"],
+            "genes": {"n_estimators": 100},
+        },
+    )
+
+    module = DiagnosisModule(model_path=tmp_path / "model.pkl", dataset_path=dataset_path)
+    monkeypatch.setattr(module, "_tree_shap_values", lambda frame, prediction_id: [-0.2, 1.4])
+
+    result = module.diagnose_patient(0)
+
+    assert [feature.feature for feature in result.top_features] == ["mean texture", "mean radius"]
+    assert [feature.impact for feature in result.top_features] == [1.4, -0.2]

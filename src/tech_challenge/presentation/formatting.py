@@ -45,22 +45,17 @@ def ag_result_rows(experiments: list[dict[str, Any]], baseline: dict[str, Any]) 
     rows = [
         {
             "Modelo": baseline["name"],
-            "F1": baseline["metrics"]["f1"],
-            "Recall": baseline["metrics"].get("recall"),
-            "Equity Gap": baseline["metrics"].get("equity_gap"),
+            "Melhor fitness": baseline["cv_fitness"],
             "Pop": "-",
             "Gen": "-",
             "Mut": "-",
         }
     ]
     for experiment in experiments:
-        metrics = experiment["test_metrics"]
         rows.append(
             {
                 "Modelo": experiment["name"],
-                "F1": metrics["f1"],
-                "Recall": metrics.get("recall"),
-                "Equity Gap": metrics.get("equity_gap"),
+                "Melhor fitness": experiment["best_fitness"],
                 "Pop": str(experiment["population"]),
                 "Gen": str(experiment["generations"]),
                 "Mut": f"{experiment['mutation_rate']:.0%}",

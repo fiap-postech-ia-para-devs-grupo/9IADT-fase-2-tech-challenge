@@ -1,0 +1,38 @@
+services:
+  api:
+    build: .
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./results:/app/results
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  streamlit:
+    build: .
+    command:
+      - streamlit
+      - run
+      - src/tech_challenge/presentation/streamlit_app.py
+      - --server.address=0.0.0.0
+      - --server.port=8501
+    environment:
+      TECH_CHALLENGE_API_URL: http://api:8000
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./results:/app/results
+    depends_on:
+      api:
+        condition: service_healthy
+

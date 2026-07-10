@@ -69,13 +69,13 @@ class AGResultRowsTests(unittest.TestCase):
             [
                 {
                     "name": "Exp",
-                    "test_metrics": {"f1": 0.95, "recall": 0.92, "equity_gap": 0.03},
+                    "best_fitness": 0.95,
                     "population": 20,
                     "generations": 5,
                     "mutation_rate": 0.1,
                 }
             ],
-            baseline={"name": "Baseline", "metrics": {"f1": 0.9, "recall": 0.88, "equity_gap": 0.04}},
+            baseline={"name": "Baseline", "cv_fitness": 0.9},
         )
 
         self.assertEqual([type(row["Pop"]) for row in rows], [str, str])
@@ -87,19 +87,23 @@ class AGResultsTests(unittest.TestCase):
     def test_ag_results_are_loaded_from_artifact_with_real_best_config_shape(self) -> None:
         results = load_ag_results()
 
-        self.assertEqual(results.best_experiment, "Exp1_Pequeno")
-        self.assertEqual(results.best_config["model_type"], "logreg")
-        self.assertEqual(results.best_config["penalty"], "l2")
-        self.assertAlmostEqual(results.baseline.metrics["f1"], 0.9512)
-        self.assertAlmostEqual(results.experiments[0].test_metrics["f1"], 0.9756)
+        best = max(results.experiments, key=lambda experiment: experiment.best_fitness)
+
+        self.assertEqual(results.schema_version, 2)
+        self.assertEqual(results.best_experiment, best.name)
+        self.assertNotIn("model_type", results.best_config)
+        self.assertEqual(results.baseline.name, "RF_Baseline")
+        self.assertEqual(len(results.experiments[0].history.best), results.experiments[0].generations)
+        self.assertEqual(len(results.experiments[0].history.mean), results.experiments[0].generations)
 
     def test_api_ag_results_exposes_expanded_artifact_shape(self) -> None:
         response = ag_results()
 
         payload = response.model_dump()
-        self.assertEqual(payload["best_config"]["model_type"], "logreg")
+        self.assertEqual(payload["schema_version"], 2)
         self.assertIn("baseline", payload)
-        self.assertIn("test_metrics", payload["experiments"][0])
+        self.assertIn("history", payload["experiments"][0])
+        self.assertIn("final_comparison", payload)
 
 
 class PatientMetadataTests(unittest.TestCase):

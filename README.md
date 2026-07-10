@@ -37,14 +37,28 @@ uv sync --frozen
 
 ## Como rodar
 
-### API + Interface juntos (recomendado)
+### Docker Compose (recomendado)
+
+```bash
+docker compose up --build
+```
+
+Isso sobe a API (`http://localhost:8000`) e o Streamlit (`http://localhost:8501`). O Compose aguarda o health check da API antes de iniciar a interface.
+
+Para acompanhar os logs:
+
+```bash
+docker compose logs -f
+```
+
+Os logs registram rota, status e duração das requisições, sem incluir dados do paciente. A pasta `results/` é montada como volume local para preservar avaliações da LLM.
+
+### Sem Docker
 
 ```bash
 npm install
 npm run dev
 ```
-
-Isso sobe a API (`http://localhost:8000`) e o Streamlit (`http://localhost:8501`) em paralelo.
 
 ### Separadamente
 
@@ -117,12 +131,12 @@ flowchart LR
 
 ## Atualização dos resultados do AG
 
-A tela de resultados do Algoritmo Genético consome `results/ag_experiment_results.json`. Esse arquivo é um artefato congelado das saídas executadas em `notebooks/tech_challenge_fase2.ipynb`, principalmente as seções de execução dos experimentos, comparação e persistência do melhor modelo.
+A tela de resultados do Algoritmo Genético consome `results/ag_experiment_results.json`. O notebook exporta esse arquivo e `model/best_model.pkl` automaticamente ao executar o estudo.
 
-Quando os experimentos forem alterados, execute novamente o notebook e atualize `results/ag_experiment_results.json` com os novos valores finais. A API e o Streamlit apenas carregam esse artefato; eles não reimplementam o motor do AG.
+Quando os experimentos forem alterados, execute novamente o notebook. A API e o Streamlit apenas carregam o artefato; eles não reimplementam nem transcrevem os resultados do AG.
 
-## Referência da Fase 1
+## Protocolo experimental
 
-A Fase 1 é usada apenas como referência comparativa para a Fase 2. O resultado base citado no comparativo do AG é: acurácia `0.9649`, precisão `0.9750`, recall `0.9286`, F1 `0.9512`, ROC AUC `0.9960` e equity gap `0.0750`.
+O AG otimiza exclusivamente hiperparâmetros do Random Forest. O vencedor é escolhido pelo fitness `0.6 × F1 + 0.4 × recall` em validação cruzada estratificada. O conjunto de teste é usado somente depois da seleção para comparar o RF padrão com o RF otimizado.
 
-O código exploratório, notebook e artefatos intermediários da Fase 1 não fazem parte deste repositório, que permanece focado na entrega da Fase 2.
+As contribuições mostradas na análise de pacientes são valores SHAP locais do modelo salvo. A explicação da LLM e o gráfico usam a mesma fonte de impactos.

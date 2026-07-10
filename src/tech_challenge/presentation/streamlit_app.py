@@ -8,6 +8,7 @@ import pandas as pd
 import requests
 import streamlit as st
 
+from tech_challenge.llm.evaluation import automatic_checks, evaluation_summary, save_evaluation
 from tech_challenge.paths import BREAST_CANCER_DATASET
 from tech_challenge.presentation.formatting import (
     ag_result_rows,
@@ -312,6 +313,7 @@ def _llm_panel(diagnosis: dict[str, Any]) -> None:
             st.write(f"- {item}")
 
     st.warning(result["disclaimer"])
+    _llm_quality_panel(diagnosis, result)
     st.button(
         "Regerar Explicação Médica", use_container_width=True, on_click=_regenerate_llm_explanation, args=(diagnosis,)
     )
@@ -347,6 +349,62 @@ def _llm_panel(diagnosis: dict[str, Any]) -> None:
                         answer = chat_answer_text(resp.json()["answer"])
                         st.write(answer)
             st.session_state.chat_history.append({"role": "assistant", "content": answer})
+
+
+def _llm_quality_panel(diagnosis: dict[str, Any], result: dict[str, Any]) -> None:
+    details = result.get("details", {})
+    checks = automatic_checks(
+        prediction=diagnosis["prediction"],
+        top_features=diagnosis["top_features"],
+        explanation=result["explanation"],
+        disclaimer=result["disclaimer"],
+        details=details,
+    )
+
+    with st.expander("Avaliar qualidade da explicação"):
+        st.caption("As verificações automáticas avaliam estrutura e consistência, não validade clínica.")
+        check_columns = st.columns(4)
+        labels = {
+            "structured_response": "Estrutura",
+            "disclaimer_present": "Aviso médico",
+            "prediction_consistent": "Coerência",
+            "shap_features_referenced": "Atributos SHAP",
+        }
+        for column, (name, label) in zip(check_columns, labels.items()):
+            value = getattr(checks, name)
+            column.metric(label, "OK" if value else "Revisar")
+
+        with st.form("llm_quality_form", clear_on_submit=True):
+            rating_columns = st.columns(4)
+            clarity = rating_columns[0].select_slider("Clareza", options=range(1, 6), value=3)
+            coherence = rating_columns[1].select_slider("Coerência", options=range(1, 6), value=3)
+            safety = rating_columns[2].select_slider("Segurança", options=range(1, 6), value=3)
+            usefulness = rating_columns[3].select_slider("Utilidade", options=range(1, 6), value=3)
+            comment = st.text_area("Comentário opcional")
+            submitted = st.form_submit_button("Salvar avaliação")
+
+        if submitted:
+            save_evaluation(
+                prediction=diagnosis["prediction"],
+                checks=checks,
+                ratings={
+                    "clareza": int(clarity),
+                    "coerencia": int(coherence),
+                    "seguranca": int(safety),
+                    "utilidade": int(usefulness),
+                },
+                comment=comment,
+            )
+            st.success("Avaliação salva localmente.")
+
+        summary = evaluation_summary()
+        if summary["count"]:
+            averages = summary["averages"]
+            st.caption(
+                f"{summary['count']} avaliação(ões) · "
+                f"Clareza {averages['clareza']:.1f} · Coerência {averages['coerencia']:.1f} · "
+                f"Segurança {averages['seguranca']:.1f} · Utilidade {averages['utilidade']:.1f}"
+            )
 
 
 def _ensure_llm_explanation(diagnosis: dict[str, Any]) -> None:
@@ -412,26 +470,73 @@ def _ag_results_screen() -> None:
     baseline = data["baseline"]
     best = data["best_config"]
 
-    st.subheader("Comparativo: Baseline vs Experimentos AG")
+    st.caption(f"Fitness: {data['fitness']['formula']} · {data['fitness']['cv_folds']}-fold cross-validation")
+    st.subheader("Experimentos em validação cruzada")
     st.dataframe(pd.DataFrame(ag_result_rows(experiments, baseline)), width="stretch")
 
-    st.subheader("Convergência por experimento")
-    fig, ax = plt.subplots()
+    st.subheader("Convergência do melhor fitness")
+    fig, ax = plt.subplots(figsize=(9, 4.5))
     for experiment in experiments:
-        ax.plot(experiment["convergence"], label=experiment["name"])
-    ax.axhline(baseline["metrics"]["f1"], color="gray", linestyle="--", label="Baseline F1")
-    ax.set_xlabel("Geração (amostrada)")
+        history = experiment["history"]
+        ax.plot(history["generation"], history["best"], marker="o", markersize=3, label=experiment["name"])
+    ax.axhline(
+        baseline["cv_fitness"],
+        color="gray",
+        linestyle="--",
+        label="RF baseline (mesmo fitness)",
+    )
+    ax.set_xlabel("Geração")
     ax.set_ylabel("Fitness")
     ax.legend()
+    ax.grid(alpha=0.25)
     st.pyplot(fig)
+
+    selected_name = st.selectbox(
+        "Detalhar experimento",
+        [experiment["name"] for experiment in experiments],
+        index=[experiment["name"] for experiment in experiments].index(data["best_experiment"]),
+    )
+    selected = next(experiment for experiment in experiments if experiment["name"] == selected_name)
+    history = selected["history"]
+    detail_fig, detail_ax = plt.subplots(figsize=(9, 4))
+    detail_ax.plot(history["generation"], history["best"], label="Melhor indivíduo")
+    detail_ax.plot(history["generation"], history["mean"], label="Média da população")
+    detail_ax.axhline(baseline["cv_fitness"], color="gray", linestyle="--", label="RF baseline")
+    detail_ax.set_xlabel("Geração")
+    detail_ax.set_ylabel("Fitness")
+    detail_ax.grid(alpha=0.25)
+    detail_ax.legend()
+    st.pyplot(detail_fig)
 
     st.subheader("Melhor configuração encontrada")
     st.write(f"Experimento: {data['best_experiment']}")
     st.json(best)
 
-    if data.get("best_model"):
-        st.subheader("Resumo do melhor modelo")
-        st.json(data["best_model"])
+    st.subheader("Avaliação final no conjunto de teste")
+    comparison = data["final_comparison"]
+    comparison_rows = []
+    for key, label in (("baseline", "RF baseline"), ("optimized", "RF otimizado")):
+        row = {"Modelo": label, **comparison[key]["metrics"]}
+        row["falsos_negativos"] = comparison[key]["false_negatives"]
+        comparison_rows.append(row)
+    comparison_frame = pd.DataFrame(comparison_rows).set_index("Modelo")
+    st.dataframe(comparison_frame.round(4), width="stretch")
+
+    metric_names = ["accuracy", "precision", "recall", "f1", "roc_auc"]
+    metrics_fig, metrics_ax = plt.subplots(figsize=(9, 4.5))
+    comparison_frame[metric_names].T.plot(kind="bar", ax=metrics_ax)
+    metrics_ax.set_ylim(0.85, 1.01)
+    metrics_ax.set_ylabel("Valor")
+    metrics_ax.set_xlabel("Métrica")
+    metrics_ax.tick_params(axis="x", rotation=0)
+    metrics_ax.grid(axis="y", alpha=0.25)
+    st.pyplot(metrics_fig)
+
+    delta = comparison["delta"]
+    st.caption(
+        f"Δ F1: {delta['f1']:+.4f} · Δ recall: {delta['recall']:+.4f} · "
+        f"Redução de falsos negativos: {delta['false_negative_reduction']}"
+    )
 
 
 def _patient_metadata() -> dict[str, int]:

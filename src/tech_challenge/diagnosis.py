@@ -6,7 +6,9 @@ from pathlib import Path
 from typing import Any
 
 import joblib
+import numpy as np
 import pandas as pd
+import shap
 
 from tech_challenge.paths import BEST_MODEL, BREAST_CANCER_DATASET
 
@@ -46,6 +48,7 @@ class DiagnosisModule:
         self.features = list(bundle["features"])
         self.genes = dict(bundle.get("genes", {}))
         self.dataset = pd.read_csv(dataset_path)
+        self._tree_explainer = None
 
     def diagnose_patient(self, patient_index: int) -> DiagnosisResult:
         if patient_index < 0 or patient_index >= len(self.dataset):
@@ -72,7 +75,7 @@ class DiagnosisModule:
             prediction="MALIGNO" if prediction_id == 1 else "BENIGNO",
             prediction_id=prediction_id,
             confidence=probability,
-            top_features=self._rank_features(raw_features, features_scaled),
+            top_features=self._rank_features(raw_features, features_scaled, x_scaled_df, prediction_id),
             features_scaled=features_scaled,
             genes=self.genes,
         )
@@ -102,20 +105,47 @@ class DiagnosisModule:
         msg = f"Could not map model feature {feature!r} to a dataset column"
         raise KeyError(msg)
 
-    def _rank_features(self, raw_features: dict[str, float], features_scaled: dict[str, float]) -> list[FeatureImpact]:
+    def _rank_features(
+        self,
+        raw_features: dict[str, float],
+        features_scaled: dict[str, float],
+        x_scaled: pd.DataFrame,
+        prediction_id: int,
+    ) -> list[FeatureImpact]:
         coefficients = getattr(self.model, "coef_", None)
         if coefficients is not None and len(coefficients) > 0:
             impacts = {
                 feature: float(coef) * features_scaled[feature] for feature, coef in zip(self.features, coefficients[0])
             }
+        elif hasattr(self.model, "feature_importances_"):
+            impacts = dict(zip(self.features, self._tree_shap_values(x_scaled, prediction_id)))
         else:
-            impacts = features_scaled
+            msg = f"Local feature impacts are not implemented for {type(self.model).__name__}"
+            raise TypeError(msg)
 
         ranked = sorted(self.features, key=lambda feature: abs(impacts[feature]), reverse=True)[:5]
         return [
             FeatureImpact(feature=feature, value=float(raw_features[feature]), impact=float(impacts[feature]))
             for feature in ranked
         ]
+
+    def _tree_shap_values(self, x_scaled: pd.DataFrame, prediction_id: int) -> list[float]:
+        if self._tree_explainer is None:
+            self._tree_explainer = shap.TreeExplainer(self.model)
+
+        raw_values = self._tree_explainer.shap_values(x_scaled)
+        if isinstance(raw_values, list):
+            values = np.asarray(raw_values[prediction_id])[0]
+        else:
+            values_array = np.asarray(raw_values)
+            if values_array.ndim == 3:
+                values = values_array[0, :, prediction_id]
+            elif values_array.ndim == 2:
+                values = values_array[0]
+            else:
+                msg = f"Unexpected SHAP values shape: {values_array.shape}"
+                raise ValueError(msg)
+        return [float(value) for value in values]
 
 
 @lru_cache(maxsize=1)

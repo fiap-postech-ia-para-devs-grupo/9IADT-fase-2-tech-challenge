@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import asdict
+from time import perf_counter
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
@@ -16,6 +18,22 @@ from tech_challenge.explanation import (
 )
 
 app = FastAPI(title="Tech Challenge Fase 2 API", version="0.1.0")
+logger = logging.getLogger("uvicorn.error")
+
+
+@app.middleware("http")
+async def request_logging(request, call_next):
+    started_at = perf_counter()
+    response = await call_next(request)
+    duration_ms = (perf_counter() - started_at) * 1000
+    logger.info(
+        "request method=%s path=%s status=%s duration_ms=%.2f",
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration_ms,
+    )
+    return response
 
 
 class FeatureImpact(BaseModel):
@@ -68,22 +86,27 @@ class AGExperiment(BaseModel):
     generations: int
     mutation_rate: float
     best_fitness: float
-    test_metrics: dict[str, float]
-    convergence: list[float]
+    best_config: dict[str, Any]
+    history: dict[str, list[float] | list[int]]
 
 
 class Baseline(BaseModel):
     name: str
-    metrics: dict[str, float]
+    cv_fitness: float
+    cv_metrics: dict[str, float]
+    test_metrics: dict[str, float]
+    false_negatives: int
 
 
 class AGResultsResponse(BaseModel):
+    schema_version: int
+    fitness: dict[str, Any]
     experiments: list[AGExperiment]
     baseline: Baseline
     best_experiment: str
     best_config: dict[str, Any]
-    rf_baseline: dict[str, Any]
-    best_model: dict[str, Any]
+    final_comparison: dict[str, Any]
+    subgroup_analysis: dict[str, Any]
     source: dict[str, Any]
 
 

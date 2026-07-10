@@ -98,4 +98,7 @@ def test_ag_results_endpoint_uses_real_artifact() -> None:
     response = client.get("/ag-results")
 
     assert response.status_code == 200
-    assert response.json()["best_experiment"] == "Exp1_Pequeno"
+    payload = response.json()
+    best = max(payload["experiments"], key=lambda experiment: experiment["best_fitness"])
+    assert payload["schema_version"] == 2
+    assert payload["best_experiment"] == best["name"]
