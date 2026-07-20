@@ -68,7 +68,51 @@ npm run dev
 uv run uvicorn tech_challenge.adapters.api:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Acesse a documentação em `http://localhost:8000/docs`.
+Acesse a documentação interativa (Swagger) em `http://localhost:8000/docs`.
+
+##### Exemplos de uso da API
+
+```bash
+# Health check
+curl http://localhost:8000/health
+# {"status":"ok"}
+
+# Metadados dos pacientes disponíveis no dataset
+curl http://localhost:8000/patients/metadata
+# {"count":569,"min_index":0,"max_index":568}
+
+# Diagnóstico de um paciente pelo índice no dataset
+curl -X POST http://localhost:8000/diagnose \
+  -H "Content-Type: application/json" \
+  -d '{"patient_index": 7}'
+# {
+#   "prediction": "MALIGNO",
+#   "confidence": 0.88,
+#   "top_features": [{"feature": "worst concave points", "value": 0.1556, "impact": 0.1267}, ...]
+# }
+
+# Explicação em linguagem natural (Gemini) a partir do resultado do diagnóstico
+curl -X POST http://localhost:8000/explain \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prediction": "MALIGNO",
+    "confidence": 0.88,
+    "top_features": [{"feature": "worst concave points", "value": 0.1556, "impact": 0.1267}]
+  }'
+# {"explanation": "...", "disclaimer": "...", "details": {...}}
+
+# Pergunta de acompanhamento sobre um diagnóstico já explicado
+curl -X POST http://localhost:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"question": "Quais features mais influenciaram esta predição?"}'
+# {"answer": "...", "details": {...}}
+
+# Resultados consolidados do estudo do Algoritmo Genético
+curl http://localhost:8000/ag-results
+# {"schema_version": 2, "experiments": [...], "best_experiment": "Exp3_Mutacao_Maior", ...}
+```
+
+`/diagnose` retorna `400` com `{"detail": "<motivo>"}` quando `patient_index` está fora do intervalo do dataset de teste (consulte `/patients/metadata` para saber o intervalo válido).
 
 #### Interface (Streamlit)
 
